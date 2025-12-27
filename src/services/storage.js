@@ -5,6 +5,12 @@ const STORAGE_KEY = 'transformationChallengeState_v3_react';
 class StorageService {
   async saveDailyEntry(dayData) {
     try {
+      // Check if database is available
+      if (!import.meta.env.POSTGRES_URL && typeof window !== 'undefined') {
+        console.log('Database not available, using localStorage only');
+        return { success: true };
+      }
+
       const { date, dayNumber, tasks, water, protein, meals, spends, chegg, freelance, weight, notes, points, isPerfect } = dayData;
       
       await sql`
@@ -36,15 +42,21 @@ class StorageService {
           updated_at = NOW()
       `;
       
+      console.log('✅ Data saved to database');
       return { success: true };
     } catch (error) {
       console.error('Save daily entry error:', error);
+      console.log('Falling back to localStorage only');
       return { success: false, error };
     }
   }
 
   async getDailyEntry(date) {
     try {
+      if (!import.meta.env.POSTGRES_URL && typeof window !== 'undefined') {
+        return null;
+      }
+
       const result = await sql`
         SELECT * FROM daily_entries
         WHERE user_id = 'default-user' AND date = ${date}
@@ -58,6 +70,10 @@ class StorageService {
 
   async getMonthEntries(month) {
     try {
+      if (!import.meta.env.POSTGRES_URL && typeof window !== 'undefined') {
+        return [];
+      }
+
       const result = await sql`
         SELECT * FROM daily_entries
         WHERE user_id = 'default-user' AND date >= ${month + '-01'} AND date < (DATE ${month + '-01'} + INTERVAL '1 month')
@@ -72,6 +88,10 @@ class StorageService {
 
   async saveMonthSummary(monthData) {
     try {
+      if (!import.meta.env.POSTGRES_URL && typeof window !== 'undefined') {
+        return;
+      }
+
       const { month, totalXP, daysCompleted, perfectDays, startWeight, endWeight, weightLost, totalSpends, totalIncome } = monthData;
       
       await sql`
@@ -92,6 +112,10 @@ class StorageService {
 
   async getMonthHistory() {
     try {
+      if (!import.meta.env.POSTGRES_URL && typeof window !== 'undefined') {
+        return [];
+      }
+
       const result = await sql`
         SELECT * FROM monthly_summary
         WHERE user_id = 'default-user'
