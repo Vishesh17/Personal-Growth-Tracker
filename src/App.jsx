@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { Line } from 'react-chartjs-2';
+import { storageService } from './services/storage';
 import {
     Chart as ChartJS,
     CategoryScale,
@@ -287,7 +288,7 @@ export default function App() {
         }
     };
 
-    const handleCompleteDay = () => {
+    const handleCompleteDay = async () => {
         const today = new Date().toLocaleDateString();
         if (state.lastCompletionDate === today) return;
 
@@ -319,7 +320,7 @@ export default function App() {
 
         if (allTasksCompleted) {
             newStreak++;
-            pointsToday += 50; // Streak bonus
+            pointsToday += 50;
             newTotalPoints += 50;
             setDayCompleteStats({
                 title: "PERFECT DAY!",
@@ -334,6 +335,27 @@ export default function App() {
                 points: pointsToday
             });
         }
+        
+        // Save to database
+        await storageService.saveDailyEntry({
+            date: new Date().toISOString().split('T')[0],
+            dayNumber: state.currentDay,
+            tasks: state.dailyTasks,
+            water: state.dailyMetrics.waterGlasses,
+            protein: state.dailyMetrics.protein,
+            meals: {
+                meal1: state.dailyLogs['meal1'],
+                meal2: state.dailyLogs['meal2'],
+                meal3: state.dailyLogs['meal3']
+            },
+            spends: spendsTodayNum,
+            chegg: cheggToday,
+            freelance: freelanceToday,
+            weight: currentWeight,
+            notes: state.notes,
+            points: pointsToday,
+            isPerfect: allTasksCompleted
+        });
         
         setState(prevState => ({
             ...prevState,
